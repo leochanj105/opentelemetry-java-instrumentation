@@ -19,6 +19,7 @@ import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;
 
 public class RunnableInstrumentation implements TypeInstrumentation {
 
@@ -46,6 +47,7 @@ public class RunnableInstrumentation implements TypeInstrumentation {
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void exit(@Advice.Enter Scope scope) {
+      Java8BytecodeBridge.currentSpan().setAttribute("async.phase", "after-execute");;
       if (scope != null) {
         scope.close();
       }
