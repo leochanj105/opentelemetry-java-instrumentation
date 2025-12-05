@@ -23,6 +23,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;
 import io.opentelemetry.context.Context;
+import java.util.concurrent.Future;
+import io.opentelemetry.javaagent.instrumentation.executors.FutureInstrumentation.EndParentInfo;
 public class RunnableInstrumentation implements TypeInstrumentation {
 
   @Override
@@ -52,7 +54,6 @@ public class RunnableInstrumentation implements TypeInstrumentation {
       // System.out.println(Thread.currentThread().getName()+": !!! In run() " + thiz +", " + Java8BytecodeBridge.currentSpan());
       // return ctx;
       if(ctx == null) {return null;}
-      System.out.println("scope: " + ctx);
       Context parentContext = Java8BytecodeBridge.currentContext();
       if (!INSTRUMENTER.shouldStart(parentContext, thiz)) {
         return null;
@@ -80,13 +81,24 @@ public class RunnableInstrumentation implements TypeInstrumentation {
       Object[] state = (Object[]) states;
       Context context = (Context) state[0];
       Scope scope = (Scope) state[1];
-
       try {
+          if(thiz instanceof Future){
+            VirtualField<Future<?>,EndParentInfo> virtualField = VirtualField.find(Future.class, EndParentInfo.class);
+            EndParentInfo epinfo = virtualField.get((Future<?>) thiz);
+            if(epinfo!=null){
+              System.out.println(thiz+"<=="+epinfo.epSpanID);
+            }
+          }
           INSTRUMENTER.end((Context)state[3], thiz, null, error);
-      } finally {
+      } 
+      catch(Throwable e){
+        System.out.println("!! " + e);
+      }
+      finally {
           scope.close();
           ((Scope)state[2]).close();
       }
+
     }
   }
 }

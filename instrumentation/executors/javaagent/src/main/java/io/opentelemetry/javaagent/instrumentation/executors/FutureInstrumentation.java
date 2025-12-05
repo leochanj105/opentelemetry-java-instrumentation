@@ -9,6 +9,7 @@ import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.
 import static java.util.logging.Level.FINE;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import io.opentelemetry.instrumentation.api.util.VirtualField;
 import io.opentelemetry.javaagent.bootstrap.executors.ExecutorAdviceHelper;
@@ -24,6 +25,11 @@ import java.util.logging.Logger;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;
+import io.opentelemetry.context.Context;
 
 public class FutureInstrumentation implements TypeInstrumentation {
   private static final Logger logger = Logger.getLogger(FutureInstrumentation.class.getName());
@@ -92,6 +98,9 @@ public class FutureInstrumentation implements TypeInstrumentation {
     transformer.applyAdviceToMethod(
         named("cancel").and(returns(boolean.class)),
         FutureInstrumentation.class.getName() + "$CanceledFutureAdvice");
+    transformer.applyAdviceToMethod(
+        named("get").and(takesArguments(0)),
+        FutureInstrumentation.class.getName() + "$FutureGetAdvice");
   }
 
   @SuppressWarnings("unused")
@@ -105,6 +114,63 @@ public class FutureInstrumentation implements TypeInstrumentation {
       VirtualField<Future<?>, PropagatedContext> virtualField =
           VirtualField.find(Future.class, PropagatedContext.class);
       ExecutorAdviceHelper.cleanPropagatedContext(virtualField, future);
+    }
+  }
+
+  public static class EndParentInfo{
+    public String epSpanID;
+    public EndParentInfo(String id){
+      this.epSpanID = id;
+    }
+  }
+
+  public static class FutureGetAdvice {
+
+    public static final Instrumenter<Future<?>, Void> INSTRUMENTER =
+      FutureGetInstrumenter.instrumenter();
+    @Advice.OnMethodEnter
+    public static Object enter(@Advice.This Future<?> future) {
+      try{
+          VirtualField<Future<?>,EndParentInfo> virtualField = VirtualField.find(Future.class, EndParentInfo.class);
+          EndParentInfo epinfo = new EndParentInfo(Java8BytecodeBridge.currentSpan().getSpanContext().getSpanId());
+          System.out.println("$$ " + epinfo.epSpanID +"==>" + future);
+          virtualField.set(future, epinfo);
+      }
+      catch(Throwable e){
+        System.out.println("!!! " + e);
+      }
+      return null;
+      // Context parent = Java8BytecodeBridge.currentContext();
+      // if(parent == null){
+      //   return null;
+      // }
+      // // return null;
+      // Instrumenter<Future<?>, Void> inst = FutureGetInstrumenter.instrumenter();
+      // if (!inst.shouldStart(parent, future)) {
+      //   return null;
+      // }
+
+      // Context ctx = inst.start(parent, future);
+      // Scope scope = ctx.makeCurrent();
+      // return new Object[]{scope,ctx};
+
+    }
+    @Advice.OnMethodExit
+    public static void exit(
+        // @Advice.Enter Object states,
+        // @Advice.Thrown Throwable error,
+        @Advice.This Future<?> future
+        ) {
+        // if (states == null) {
+        //   return;
+        // }
+        // Object[] state = (Object[]) states;
+        // try {
+        //   FutureGetInstrumenter.instrumenter().end((Context)state[1], future, null, error);
+        // } finally {
+        //   ((Scope)state[0]).close();
+        // }
+
     }
   }
 }

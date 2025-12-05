@@ -80,7 +80,7 @@ public class JavaExecutorInstrumentation extends AbstractExecutorInstrumentation
     public static PropagatedContext enterJobSubmit(
         @Advice.Argument(value = 0, readOnly = false) Runnable task) {
       Context context = Java8BytecodeBridge.currentContext();
-      System.out.println("@@ context:" + context+",task:" + task);
+      System.out.println("@@ task:" + task);
       if (ExecutorAdviceHelper.shouldPropagateContext(context, task)) {
         System.out.println("shouldPropagate");
         VirtualField<Runnable, PropagatedContext> virtualField =
