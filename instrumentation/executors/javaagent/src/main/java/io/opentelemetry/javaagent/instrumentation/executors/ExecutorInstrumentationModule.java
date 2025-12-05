@@ -12,10 +12,20 @@ import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModul
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import java.util.List;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 @AutoService(InstrumentationModule.class)
 public class ExecutorInstrumentationModule extends InstrumentationModule {
   public ExecutorInstrumentationModule() {
     super("executor");
+  }
+
+  @Override
+  public List<String> getAdditionalHelperClassNames() {
+      return Arrays.asList(
+        "io.opentelemetry.javaagent.instrumentation.executors.AsyncRunnableInstrumenter"
+      );
   }
 
   @Override

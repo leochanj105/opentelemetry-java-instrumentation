@@ -21,6 +21,9 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+// import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+// import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;
+// import io.opentelemetry.context.Context;
 public class CallableInstrumentation implements TypeInstrumentation {
 
   @Override
@@ -42,6 +45,20 @@ public class CallableInstrumentation implements TypeInstrumentation {
     public static Scope enter(@Advice.This Callable<?> task) {
       VirtualField<Callable<?>, PropagatedContext> virtualField =
           VirtualField.find(Callable.class, PropagatedContext.class);
+
+      // System.out.println(Thread.currentThread().getName()+":!!! In enter() " + task +", " + Java8BytecodeBridge.currentSpan());
+      // Scope ctx = TaskAdviceHelper.makePropagatedContextCurrent(virtualField, task);
+      // if(ctx == null) {
+      //   return null;
+      // }
+
+      // Context parentContext = Java8BytecodeBridge.currentContext();
+      // Instrumenter<Callable<?>, Void> INSTRUMENTER = AsyncCallableInstrumenter.instrumenter();
+      // if (!INSTRUMENTER.shouldStart(parentContext, task)) {
+      //   return null;
+      // }
+      // Context newer = INSTRUMENTER.start(parentContext, task);
+      // return newer.makeCurrent();
       return TaskAdviceHelper.makePropagatedContextCurrent(virtualField, task);
     }
 
