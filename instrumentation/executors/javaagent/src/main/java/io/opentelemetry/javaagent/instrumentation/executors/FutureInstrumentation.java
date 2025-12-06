@@ -135,41 +135,43 @@ public class FutureInstrumentation implements TypeInstrumentation {
           EndParentInfo epinfo = new EndParentInfo(Java8BytecodeBridge.currentSpan().getSpanContext().getSpanId());
           System.out.println("$$ " + epinfo.epSpanID +"==>" + future);
           virtualField.set(future, epinfo);
+          Context parent = Java8BytecodeBridge.currentContext();
+          if(parent == null){
+            return null;
+          }
+          // Instrumenter<Future<?>, Void> inst = FutureGetInstrumenter.instrumenter();
+          if (!INSTRUMENTER.shouldStart(parent, future)) {
+            return null;
+          }
+          Context ctx = INSTRUMENTER.start(parent, future);
+          System.out.println("$$ NEW:" + ctx);
+          Scope scope = ctx.makeCurrent();
+          return new Object[]{scope,ctx};
+
       }
       catch(Throwable e){
         System.out.println("!!! " + e);
       }
       return null;
-      // Context parent = Java8BytecodeBridge.currentContext();
-      // if(parent == null){
-      //   return null;
-      // }
       // // return null;
-      // Instrumenter<Future<?>, Void> inst = FutureGetInstrumenter.instrumenter();
-      // if (!inst.shouldStart(parent, future)) {
-      //   return null;
-      // }
 
-      // Context ctx = inst.start(parent, future);
-      // Scope scope = ctx.makeCurrent();
-      // return new Object[]{scope,ctx};
 
     }
-    @Advice.OnMethodExit
+    @Advice.OnMethodExit(onThrowable = Throwable.class)
     public static void exit(
-        // @Advice.Enter Object states,
-        // @Advice.Thrown Throwable error,
+        @Advice.Enter Object states,
+        @Advice.Thrown Throwable error,
         @Advice.This Future<?> future
         ) {
-        // if (states == null) {
-        //   return;
-        // }
-        // Object[] state = (Object[]) states;
-        // try {
-        //   FutureGetInstrumenter.instrumenter().end((Context)state[1], future, null, error);
-        // } finally {
-        //   ((Scope)state[0]).close();
-        // }
+        if (states == null) {
+          return;
+        }
+        Object[] state = (Object[]) states;
+        try {
+          INSTRUMENTER.end((Context)state[1], future, null, error);
+        } finally {
+          ((Scope)state[0]).close();
+        }
 
     }
   }
