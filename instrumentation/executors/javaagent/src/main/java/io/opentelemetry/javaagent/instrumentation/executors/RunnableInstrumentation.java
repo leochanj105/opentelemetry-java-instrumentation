@@ -87,6 +87,8 @@ public class RunnableInstrumentation implements TypeInstrumentation {
             EndParentInfo epinfo = virtualField.get((Future<?>) thiz);
             if(epinfo!=null){
               System.out.println(thiz+"<=="+epinfo.epSpanID);
+              Java8BytecodeBridge.currentSpan().setAttribute("end_parent", epinfo.epSpanID);
+              virtualField.set((Future<?>)thiz,null);
             }
           }
           INSTRUMENTER.end((Context)state[3], thiz, null, error);

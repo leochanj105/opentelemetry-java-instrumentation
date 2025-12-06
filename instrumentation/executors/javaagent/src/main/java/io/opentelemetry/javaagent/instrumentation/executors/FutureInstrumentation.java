@@ -131,10 +131,6 @@ public class FutureInstrumentation implements TypeInstrumentation {
     @Advice.OnMethodEnter
     public static Object enter(@Advice.This Future<?> future) {
       try{
-          VirtualField<Future<?>,EndParentInfo> virtualField = VirtualField.find(Future.class, EndParentInfo.class);
-          EndParentInfo epinfo = new EndParentInfo(Java8BytecodeBridge.currentSpan().getSpanContext().getSpanId());
-          System.out.println("$$ " + epinfo.epSpanID +"==>" + future);
-          virtualField.set(future, epinfo);
           Context parent = Java8BytecodeBridge.currentContext();
           if(parent == null){
             return null;
@@ -144,8 +140,12 @@ public class FutureInstrumentation implements TypeInstrumentation {
             return null;
           }
           Context ctx = INSTRUMENTER.start(parent, future);
-          System.out.println("$$ NEW:" + ctx);
+          // System.out.println("$$ NEW:" + ctx);
           Scope scope = ctx.makeCurrent();
+          VirtualField<Future<?>,EndParentInfo> virtualField = VirtualField.find(Future.class, EndParentInfo.class);
+          EndParentInfo epinfo = new EndParentInfo(Java8BytecodeBridge.currentSpan().getSpanContext().getSpanId());
+          System.out.println("$$ " + epinfo.epSpanID +"==>" + future);
+          virtualField.set(future, epinfo);
           return new Object[]{scope,ctx};
 
       }
