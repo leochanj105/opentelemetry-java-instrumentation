@@ -136,17 +136,16 @@ public class FutureInstrumentation implements TypeInstrumentation {
             return null;
           }
           // Instrumenter<Future<?>, Void> inst = FutureGetInstrumenter.instrumenter();
-          if (!INSTRUMENTER.shouldStart(parent, future)) {
-            return null;
-          }
-          Context ctx = INSTRUMENTER.start(parent, future);
-          // System.out.println("$$ NEW:" + ctx);
-          Scope scope = ctx.makeCurrent();
+          // if (!INSTRUMENTER.shouldStart(parent, future)) {
+          //   return null;
+          // }
+          // Context ctx = INSTRUMENTER.start(parent, future);
+          // Scope scope = ctx.makeCurrent();
           VirtualField<Future<?>,EndParentInfo> virtualField = VirtualField.find(Future.class, EndParentInfo.class);
           EndParentInfo epinfo = new EndParentInfo(Java8BytecodeBridge.currentSpan().getSpanContext().getSpanId());
           System.out.println("$$ " + epinfo.epSpanID +"==>" + future);
           virtualField.set(future, epinfo);
-          return new Object[]{scope,ctx};
+          // return new Object[]{scope,ctx};
 
       }
       catch(Throwable e){
@@ -159,19 +158,19 @@ public class FutureInstrumentation implements TypeInstrumentation {
     }
     @Advice.OnMethodExit(onThrowable = Throwable.class)
     public static void exit(
-        @Advice.Enter Object states,
-        @Advice.Thrown Throwable error,
+        // @Advice.Enter Object states,
+        // @Advice.Thrown Throwable error,
         @Advice.This Future<?> future
         ) {
-        if (states == null) {
-          return;
-        }
-        Object[] state = (Object[]) states;
-        try {
-          INSTRUMENTER.end((Context)state[1], future, null, error);
-        } finally {
-          ((Scope)state[0]).close();
-        }
+        // if (states == null) {
+        //   return;
+        // }
+        // Object[] state = (Object[]) states;
+        // try {
+        //   INSTRUMENTER.end((Context)state[1], future, null, error);
+        // } finally {
+        //   ((Scope)state[0]).close();
+        // }
 
     }
   }
